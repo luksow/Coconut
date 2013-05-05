@@ -1,6 +1,4 @@
-
 #include <pthread.h>
-#include <semaphore.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -16,28 +14,44 @@ extern int pthread_kill(pthread_t thread, int sig); /* should be in signal.h, bu
 
 typedef struct list_head list_t;
 
-typedef struct {
-	list_t head;
-	sem_t waiting_sem;
-} waiting_t;
-
-typedef struct {
-	list_t head;
-	waiting_t waitings_list;
-	const char *id;
-	bool published;
-} event_t;
-
-typedef struct {
+typedef struct
+{
 	list_t head;
 	pthread_t id;
 	bool blocked;
 } thread_t;
 
+typedef struct
+{
+	list_t head;
+	pthread_mutex_t cond_mutex;
+	pthread_cond_t cond;
+	const char *id;
+	bool published;
+} event_t;
+
+typedef enum
+{
+	CREATED,
+	NOT_STARTED,
+	STARTED,
+	FINISHED,
+} BLOCK_STATE;
+
+typedef struct
+{
+	list_t head;
+	thread_t *owner;
+	const char *id;
+	BLOCK_STATE state;
+} block_t;
+
 event_t events_list;
+block_t blocks_list; /* should be generally used as queue */
 thread_t threads_list;
 
 pthread_mutex_t events_list_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t blocks_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t threads_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 pthread_t watchdog_thread;
@@ -46,15 +60,59 @@ unsigned int watchdog_tick = 1;
 unsigned long blocked_counter = 0;
 bool running = false;
 
-static event_t *find_event(const char *event)
+event_t *create_add_event(const char *id)
 {
-	event_t *tmp;
+	event_t *event = malloc(sizeof(event_t));
+	event->id = id;
+	event->published = false;
+	pthread_cond_init(&event->cond, NULL);
+	pthread_mutex_init(&event->cond_mutex, NULL);
+	list_add_tail(&event->head, &events_list.head);
+
+	return event;
+}
+
+void free_event(event_t *event)
+{
+	pthread_mutex_destroy(&event->cond_mutex);
+	pthread_cond_destroy(&event->cond);
+	free(event);
+}
+
+/* should be called with events_list_mutex taken */
+static event_t *find_event(const char *id)
+{
+	event_t *event;
 	list_t *it;
 
 	list_for_each(it, &events_list.head)
 	{
-		tmp = list_entry(it, event_t, head);
-		if (strcmp(tmp->id, event) == 0)
+		event = list_entry(it, event_t, head);
+		if (strcmp(event->id, id) == 0)
+			return event;
+	}
+
+	return NULL;
+}
+
+static void publish_event(event_t *event)
+{
+	pthread_mutex_lock(&event->cond_mutex);
+	event->published = true;
+	pthread_cond_broadcast(&event->cond);
+	pthread_mutex_unlock(&event->cond_mutex);
+}
+
+/* should be called with blocks_list_mutex taken */
+static block_t *find_block(const char *block)
+{
+	block_t *tmp;
+	list_t *it;
+
+	list_for_each(it, &blocks_list.head)
+	{
+		tmp = list_entry(it, block_t, head);
+		if (strcmp(tmp->id, block) == 0)
 			return tmp;
 	}
 
@@ -115,18 +173,7 @@ static void mark_self_unblocked()
 	pthread_mutex_unlock(&threads_list_mutex);
 }
 
-static void publish_existing_event(event_t *event)
-{
-	list_t *it;
-	waiting_t *tmp;
-
-	event->published = true;
-	list_for_each(it, &event->waitings_list.head)
-	{
-		tmp = list_entry(it, waiting_t, head);
-		sem_post(&tmp->waiting_sem);
-	}
-}
+void c_output(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 
 void c_output(const char *format, ...)
 {
@@ -186,7 +233,7 @@ static void *watchdog(void *dummy)
 			list_for_each(it, &events_list.head)
 			{
 				tmp_event = list_entry(it, event_t, head);
-				publish_existing_event(tmp_event);
+				publish_event(tmp_event);
 			}
 			pthread_mutex_unlock(&events_list_mutex);
 		}
@@ -222,8 +269,6 @@ static void free_c()
 {
 	list_t *event_it, *event_tmp_it;
 	event_t *event_tmp;
-	list_t *waiting_it, *waiting_tmp_it;
-	waiting_t *waiting_tmp;
 	list_t *thread_it, *thread_tmp_it;
 	thread_t *thread_tmp;
 
@@ -236,14 +281,7 @@ static void free_c()
 	{
 		event_tmp = list_entry(event_it, event_t, head);
 		list_del(event_it);
-		list_for_each_safe(waiting_it, waiting_tmp_it, &event_tmp->waitings_list.head)
-		{
-			waiting_tmp = list_entry(waiting_it, waiting_t, head);
-			list_del(waiting_it);
-			sem_destroy(&waiting_tmp->waiting_sem);
-			free(waiting_tmp);
-		}
-		free(event_tmp);
+		free_event(event_tmp);
 	}
 
 	list_for_each_safe(thread_it, thread_tmp_it, &threads_list.head)
@@ -267,10 +305,53 @@ int main(int argc, char **argv, char **envp)
 	return ret;
 }
 
+void c_begin_block(const char *block)
+{
+//	block_t *tmp_block;
+
+	if (!running)
+		return;
+
+	pthread_mutex_lock(&blocks_list_mutex);
+
+	if (find_block(block))
+	{
+		c_output("Duplicated block id, library malfunctions possible\n");
+		return;
+	}
+
+	pthread_mutex_unlock(&blocks_list_mutex);
+}
+
+void c_end_block()
+{
+}
+
+void c_one_line_block(const char *block)
+{
+	c_begin_block(block);
+	c_end_block();
+}
+
+bool c_is_event_published(const char *event)
+{
+	event_t *tmp_event;
+
+	pthread_mutex_lock(&events_list_mutex);
+
+	tmp_event = find_event(event);
+
+	pthread_mutex_unlock(&events_list_mutex);
+
+	if (!tmp_event)
+		return false;
+
+	return tmp_event->published == true;
+}
+
 void c_wait_event(const char *event)
 {
 	event_t *tmp;
-	waiting_t *waiting = NULL;
 
 	if (!running)
 		return;
@@ -278,33 +359,18 @@ void c_wait_event(const char *event)
 	pthread_mutex_lock(&events_list_mutex);
 
 	tmp = find_event(event);
-
-	if (tmp && !tmp->published) /* we should block */
-	{
-		waiting = malloc(sizeof(waiting_t));
-		sem_init(&waiting->waiting_sem, 0, 0); /* initial = 0 for immediate block */
-		list_add_tail(&waiting->head, &tmp->waitings_list.head);
-	}
-	else if (!tmp)/* not found -> create new and block */
-	{
-		tmp = malloc(sizeof(event_t));
-		tmp->id = event;
-		tmp->published = false;
-		INIT_LIST_HEAD(&tmp->waitings_list.head);
-		list_add_tail(&tmp->head, &events_list.head);
-
-		waiting = malloc(sizeof(waiting_t));
-		sem_init(&waiting->waiting_sem, 0, 0); /* initial = 0 for immediate block */
-		list_add_tail(&waiting->head, &tmp->waitings_list.head);
-
-	}
-	/* else if (tmp && tmp->published) -> ignore */
+	if (!tmp) /* not found -> create new and block after */
+		tmp = create_add_event(event);
 
 	pthread_mutex_unlock(&events_list_mutex);
 
 	mark_self_blocked();
-	if (waiting)
-		sem_wait(&waiting->waiting_sem);
+
+	pthread_mutex_lock(&tmp->cond_mutex);
+	while (!tmp->published) /* wait on conditional */
+		pthread_cond_wait(&tmp->cond, &tmp->cond_mutex);
+	pthread_mutex_unlock(&tmp->cond_mutex);
+
 	mark_self_unblocked();
 }
 
@@ -318,20 +384,11 @@ void c_publish_event(const char *event)
 	pthread_mutex_lock(&events_list_mutex);
 
 	tmp = find_event(event);
+	if (!tmp)
+		tmp = create_add_event(event);
 
-	if (tmp) /* unlock all */
-	{
-		publish_existing_event(tmp);
-	}
-	else /* add new in case someone subscribe */
-	{
-		tmp = malloc(sizeof(event_t));
-		tmp->id = event;
-		tmp->published = true;
-		INIT_LIST_HEAD(&tmp->waitings_list.head);
-
-		list_add_tail(&tmp->head, &events_list.head);
-	}
+	if (!tmp->published)
+		publish_event(tmp);
 
 	pthread_mutex_unlock(&events_list_mutex);
 }
