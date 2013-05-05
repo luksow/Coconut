@@ -1,5 +1,5 @@
 PROG=	libcoconut.a
-SRCS=	coconut.c
+SRCS=	blocks.c coconut.c events.c threads.c
 OBJS=	${SRCS:.c=.o}
 
 CC=	gcc
