@@ -1,3 +1,8 @@
+/*
+ * threads.c - Threads management for Coconut library
+ * Copyright (C) 2013 Lukasz Sowa <contact@lukaszsowa.pl>
+ */
+
 #include <stdlib.h>
 
 #include "threads.h"
@@ -8,6 +13,7 @@ unsigned long blocked_counter = 0;
 
 extern int pthread_kill(pthread_t thread, int sig); // should be in signal.h, but buggy on some glibcs
 
+/* should be called with threads_list_mutex taken */
 static thread_t *create_add_thread(pthread_t id)
 {
 	thread_t *thread = malloc(sizeof(thread_t));
@@ -17,7 +23,7 @@ static thread_t *create_add_thread(pthread_t id)
 	return thread;
 }
 
-void free_thread(thread_t *thread)
+static void free_thread(thread_t *thread)
 {
 	free(thread);
 }

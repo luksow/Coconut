@@ -1,3 +1,8 @@
+/*
+ * blocks.c - Functions for block-based testing in Coconut library
+ * Copyright (C) 2013 Lukasz Sowa <contact@lukaszsowa.pl>
+ */
+
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,7 +16,8 @@ block_t blocks_list;
 pthread_mutex_t blocks_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 unsigned long block_counter = 0;
 
-block_t *find_block(const char *id)
+/* should be called with blocks_list_mutex taken */
+static block_t *find_block(const char *id)
 {
 	block_t *block;
 	list_t *it;
@@ -110,6 +116,7 @@ static void finish_block(block_t *block)
 }
 
 
+/* should be called with blocks_list_mutex taken */
 void finish_all_blocks()
 {
 	block_t *block;
@@ -129,6 +136,9 @@ void c_set_blocks_interleaving(const char *interleaving)
 	char **groups = get_tokenized(interleaving, ";");
 	char **prev_elems = NULL;
 	char **elems;
+
+	if (!running)
+		return;
 
 	free_blocks_list();
 
@@ -157,6 +167,9 @@ void c_begin_block(const char *id)
 	block_t *block;
 	list_t *it;
 	waiting_t *tmp;
+
+	if (!running)
+		return;
 
 	pthread_mutex_lock(&blocks_list_mutex);
 
@@ -192,12 +205,11 @@ void c_begin_block(const char *id)
 		pthread_mutex_lock(&tmp->block->cond_mutex);
 		while (tmp->block->state != FINISHED)
 			pthread_cond_wait(&tmp->block->cond, &tmp->block->cond_mutex);
+		block->state = STARTED;
 		pthread_mutex_unlock(&tmp->block->cond_mutex);
 	}
 
 	mark_self_unblocked();
-
-	block->state = STARTED;
 }
 
 void c_end_block()
@@ -206,6 +218,9 @@ void c_end_block()
 	block_t *tmp;
 	list_t *it;
 	unsigned long min_counter = ULONG_MAX;
+
+	if (!running)
+		return;
 
 	list_for_each(it, &blocks_list.head)
 	{

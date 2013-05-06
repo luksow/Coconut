@@ -1,3 +1,8 @@
+/*
+ * events.c - Functions for event-based testing in Coconut library
+ * Copyright (C) 2013 Lukasz Sowa <contact@lukaszsowa.pl>
+ */
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -8,7 +13,8 @@
 event_t events_list;
 pthread_mutex_t events_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-event_t *create_add_event(const char *id)
+/* should be called with events_list_mutex taken */
+static event_t *create_add_event(const char *id)
 {
 	event_t *event = malloc(sizeof(event_t));
 	event->id = id;
@@ -20,7 +26,7 @@ event_t *create_add_event(const char *id)
 	return event;
 }
 
-void free_event(event_t *event)
+static void free_event(event_t *event)
 {
 	pthread_mutex_destroy(&event->cond_mutex);
 	pthread_cond_destroy(&event->cond);
@@ -40,6 +46,7 @@ void free_events_list()
 	}
 }
 
+/* should be called with events_list_mutex taken */
 static event_t *find_event(const char *id)
 {
 	event_t *event;
@@ -55,7 +62,7 @@ static event_t *find_event(const char *id)
 	return NULL;
 }
 
-void publish_event(event_t *event)
+static void publish_event(event_t *event)
 {
 	pthread_mutex_lock(&event->cond_mutex);
 	event->published = true;
@@ -63,6 +70,7 @@ void publish_event(event_t *event)
 	pthread_mutex_unlock(&event->cond_mutex);
 }
 
+/* should be called with events_list_mutex taken */
 void publish_all_events()
 {
 	event_t *event;

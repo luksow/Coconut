@@ -1,3 +1,9 @@
+/*
+ * coconut.h - Coconut - library for unit testing concurrent C/C++ programs
+ * For more info see README file distributed with source code
+ * Copyright (C) 2013 Lukasz Sowa <contact@lukaszsowa.pl>
+ */
+
 #ifndef __COCONUT_H
 #define __COCONUT_H
 

@@ -1,3 +1,8 @@
+/*
+ * coconut.c - Core functions of Coconut library
+ * Copyright (C) 2013 Lukasz Sowa <contact@lukaszsowa.pl>
+ */
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,6 +20,9 @@ bool running = false;
 
 void c_output(const char *format, ...)
 {
+	if (!running)
+		return;
+
 	pthread_mutex_lock(&output_mutex);
 	va_list args;
 	va_start(args, format);

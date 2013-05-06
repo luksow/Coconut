@@ -1,3 +1,8 @@
+/*
+ * utils.c - Utils for Coconut library
+ * Copyright (C) 2013 Lukasz Sowa <contact@lukaszsowa.pl>
+ */
+
 #include <stdlib.h>
 #include <string.h>
 
