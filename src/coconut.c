@@ -8,31 +8,30 @@
 #include "events.h"
 #include "threads.h"
 
+pthread_mutex_t output_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_t watchdog_thread;
 unsigned int watchdog_tick = 1;
 bool running = false;
 
 void c_output(const char *format, ...)
 {
+	pthread_mutex_lock(&output_mutex);
 	va_list args;
 	va_start(args, format);
 	vfprintf(stderr, format, args);
 	va_end(args);
+	pthread_mutex_unlock(&output_mutex);
 }
 
 static void *watchdog(void *dummy)
 {
-	thread_t *tmp_thread;
-	event_t *tmp_event;
-	list_t *it;
 	unsigned long last_blocked_counter = blocked_counter - 1;
 	bool terminate;
-	bool all_dead;
 
 	while (running)
 	{
-		sleep(watchdog_tick);
 		terminate = true;
+
 		pthread_mutex_lock(&threads_list_mutex);
 
 		if (terminate && list_empty(&threads_list.head)) // if empty - nothing happened -> ok
@@ -41,41 +40,26 @@ static void *watchdog(void *dummy)
 		if (terminate && last_blocked_counter != blocked_counter) // if counter changed, there was change in state -> ok
 			terminate = false;
 
-		if (terminate) // if still uncertain, check liveness
-		{
-			all_dead = true;
-			list_for_each(it, &threads_list.head)
-			{
-				tmp_thread = list_entry(it, thread_t, head);
-				if (is_thread_alive(tmp_thread))
-				{
-					all_dead = false;
-					if (!tmp_thread->blocked) // thread is not blocked and alive -> ok
-					{
-						terminate = false;
-						break;
-					}
-				}
-			}
-			if (all_dead) // all involved threads are dead -> ok
+		if (terminate && check_liveness()) // if still uncertain, check liveness
 				terminate = false;
-		}
 
 		pthread_mutex_unlock(&threads_list_mutex);
 
-		if (terminate)
+		if (terminate) // finally -> terminate
 		{
-			c_output("Deadlock detected, fixed interleaving is probably impossible. Perhaps synchronization is correct or you should adjust watchdog tick with $C_WATCHDOG_TICK. Publishing all events...\n");
+			c_output("Deadlock detected, fixed interleaving is probably impossible. Perhaps synchronization is correct or you should adjust watchdog tick with $C_WATCHDOG_TICK. Publishing all events, finishing all blocks...\n");
+
 			pthread_mutex_lock(&events_list_mutex);
-			list_for_each(it, &events_list.head)
-			{
-				tmp_event = list_entry(it, event_t, head);
-				publish_event(tmp_event);
-			}
+			publish_all_events();
 			pthread_mutex_unlock(&events_list_mutex);
+
+			pthread_mutex_lock(&blocks_list_mutex);
+			finish_all_blocks();
+			pthread_mutex_unlock(&blocks_list_mutex);
 		}
 
 		last_blocked_counter = blocked_counter;
+		sleep(watchdog_tick);
 	}
 
 	return NULL;
@@ -92,6 +76,7 @@ static void init_c(int argc, char **argv, char **envp)
 	// init static list heads
 	INIT_LIST_HEAD(&events_list.head);
 	INIT_LIST_HEAD(&threads_list.head);
+	INIT_LIST_HEAD(&blocks_list.head);
 
 	// read watchdog tick duration
 	watchdog_tick_str = getenv("C_WATCHDOG_TICK");
@@ -104,29 +89,14 @@ static void init_c(int argc, char **argv, char **envp)
 
 static void free_c()
 {
-	list_t *event_it, *event_tmp_it;
-	event_t *event_tmp;
-	list_t *thread_it, *thread_tmp_it;
-	thread_t *thread_tmp;
-
 	running = false; // stop running additional threads
 
 	pthread_join(watchdog_thread, NULL); // wait for watchdog to terminate
 
 	// memory freeing
-	list_for_each_safe(event_it, event_tmp_it, &events_list.head)
-	{
-		event_tmp = list_entry(event_it, event_t, head);
-		list_del(event_it);
-		free_event(event_tmp);
-	}
-
-	list_for_each_safe(thread_it, thread_tmp_it, &threads_list.head)
-	{
-		thread_tmp = list_entry(thread_it, thread_t, head);
-		list_del(thread_it);
-		free(thread_tmp);
-	}
+	free_threads_list();
+	free_events_list();
+	free_blocks_list();
 }
 
 extern int c_main(int argc, char **argv, char **envp);

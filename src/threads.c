@@ -22,6 +22,19 @@ void free_thread(thread_t *thread)
 	free(thread);
 }
 
+void free_threads_list()
+{
+	list_t *it, *tmp_it;
+	thread_t *tmp;
+
+	list_for_each_safe(it, tmp_it, &threads_list.head)
+	{
+		tmp = list_entry(it, thread_t, head);
+		list_del(it);
+		free_thread(tmp);
+	}
+}
+
 thread_t *find_thread(const pthread_t id)
 {
 	thread_t *thread;
@@ -37,9 +50,29 @@ thread_t *find_thread(const pthread_t id)
 	return NULL;
 }
 
-bool is_thread_alive(const thread_t *thread)
+static bool is_thread_alive(const thread_t *thread)
 {
 	return pthread_kill(thread->id, 0) == 0;
+}
+
+bool check_liveness()
+{
+	bool all_dead = true;
+	thread_t *thread;
+	list_t *it;
+
+	list_for_each(it, &threads_list.head)
+	{
+		thread = list_entry(it, thread_t, head);
+		if (is_thread_alive(thread))
+		{
+			all_dead = false;
+			if (!thread->blocked) // thread is not blocked and alive -> ok
+				return true;
+		}
+	}
+
+	return all_dead; // if all dead -> ok
 }
 
 void mark_self_blocked()

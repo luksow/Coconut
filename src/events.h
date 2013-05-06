@@ -22,7 +22,11 @@ event_t *create_add_event(const char *id);
 
 void free_event(event_t *event);
 
+void free_events_list();
+
 void publish_event(event_t *event);
+
+void publish_all_events();
 
 bool c_is_event_published(const char *event);
 

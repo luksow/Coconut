@@ -27,6 +27,19 @@ void free_event(event_t *event)
 	free(event);
 }
 
+void free_events_list()
+{
+	list_t *it, *tmp_it;
+	event_t *event;
+
+	list_for_each_safe(it, tmp_it, &events_list.head)
+	{
+		event = list_entry(it, event_t, head);
+		list_del(it);
+		free_event(event);
+	}
+}
+
 static event_t *find_event(const char *id)
 {
 	event_t *event;
@@ -48,6 +61,19 @@ void publish_event(event_t *event)
 	event->published = true;
 	pthread_cond_broadcast(&event->cond);
 	pthread_mutex_unlock(&event->cond_mutex);
+}
+
+void publish_all_events()
+{
+	event_t *event;
+	list_t *it;
+
+	list_for_each(it, &events_list.head)
+	{
+		event = list_entry(it, event_t, head);
+		publish_event(event);
+	}
+
 }
 
 bool c_is_event_published(const char *id)

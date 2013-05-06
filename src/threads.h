@@ -21,9 +21,11 @@ extern unsigned long blocked_counter;
 
 void free_thread(thread_t *thread);
 
+void free_threads_list();
+
 thread_t *find_thread(const pthread_t id);
 
-bool is_thread_alive(const thread_t *thread);
+bool check_liveness();
 
 void mark_self_blocked();
 
