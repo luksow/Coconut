@@ -10,7 +10,6 @@ CFLAGS= -std=c11 -O3 -Wall -pedantic -c -g
 all: prog
 
 prog: $(OBJS)
-	$(CC) $(CFLAGS) $(OBJS)
 	ar rcs $(PROG) $(OBJS)
 
 clean:

@@ -73,7 +73,7 @@ static void *watchdog(void *dummy)
 	return NULL;
 }
 
-static void init_c(int argc, char **argv, char **envp)
+void c_init(int argc, const char **argv, const char **envp)
 {
 	char *watchdog_tick_str;
 	unsigned int new_watchdog_tick;
@@ -95,7 +95,7 @@ static void init_c(int argc, char **argv, char **envp)
 	pthread_create(&watchdog_thread, NULL, watchdog, NULL);
 }
 
-static void free_c()
+void c_free()
 {
 	running = false; // stop running additional threads
 
@@ -107,15 +107,3 @@ static void free_c()
 	free_blocks_list();
 }
 
-extern int c_main(int argc, char **argv, char **envp);
-
-int main(int argc, char **argv, char **envp)
-{
-	int ret;
-
-	init_c(argc, argv, envp);
-	ret = c_main(argc, argv, envp);
-	free_c();
-
-	return ret;
-}

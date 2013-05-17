@@ -12,6 +12,18 @@
 #include <stdbool.h>
 
 /**
+ * Initializing function.
+ * Should be called before any other Coconut functions.
+ */
+void c_init(int argc, const char **argv, const char **envp);
+
+/**
+ * Resource freeing function.
+ * Should be called after any other Coconut functions.
+ */
+void c_free();
+
+/**
  * Blocks calling thread until event is published.
  */
 void c_wait_event(const char *event);
@@ -98,6 +110,9 @@ void c_output(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 #define c_assert_after_block(BLOCK, FMT, ...) do { if (!c_is_after_block(BLOCK)) c_assert_true(0, FMT, ##__VA_ARGS__); } while (0)
 
 #else
+
+#define c_init(x, y, z) do {} while(0)
+#define c_free() do {} while(0)
 
 #define c_output(x, ...) do {} while(0)
 
