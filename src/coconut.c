@@ -73,7 +73,7 @@ static void *watchdog(void *dummy)
 	return NULL;
 }
 
-void c_init(int argc, const char **argv, const char **envp)
+void c_init()
 {
 	char *watchdog_tick_str;
 	unsigned int new_watchdog_tick;

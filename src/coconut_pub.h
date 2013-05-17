@@ -15,7 +15,7 @@
  * Initializing function.
  * Should be called before any other Coconut functions.
  */
-void c_init(int argc, const char **argv, const char **envp);
+void c_init();
 
 /**
  * Resource freeing function.
@@ -81,6 +81,11 @@ bool c_is_after_block(const char *block);
 void c_output(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 
 /**
+ * c_output wrapper with beautification
+ */
+#define c_out(FMT, ...) do { c_output("[%s:%s:%d]: " FMT "\n", __FILE__, __PRETTY_FUNCTION__, __LINE__, ##__VA_ARGS__); } while (0)
+
+/**
  * Asserts that COND is true. Prints passed message otherwise.
  */
 #define c_assert_true(COND, FMT, ...) do { if (!(COND)) { c_output("[%s:%s:%d]: Assert failed: " FMT "\n", __FILE__, __PRETTY_FUNCTION__, __LINE__, ##__VA_ARGS__); } } while (0)
@@ -111,10 +116,11 @@ void c_output(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 
 #else
 
-#define c_init(x, y, z) do {} while(0)
+#define c_init() do {} while(0)
 #define c_free() do {} while(0)
 
 #define c_output(x, ...) do {} while(0)
+#define c_out(x, ...) do {} while (0)
 
 #define c_wait_event(x) do {} while(0)
 #define c_publish_event(x) do {} while(0)
