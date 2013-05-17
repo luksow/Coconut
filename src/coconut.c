@@ -97,6 +97,9 @@ void c_init()
 
 void c_free()
 {
+	if (!running)
+		return;
+
 	running = false; // stop running additional threads
 
 	pthread_join(watchdog_thread, NULL); // wait for watchdog to terminate

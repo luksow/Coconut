@@ -88,6 +88,9 @@ bool c_is_event_published(const char *id)
 {
 	event_t *event;
 
+	if (!running)
+		return false;
+
 	pthread_mutex_lock(&events_list_mutex);
 
 	event = find_event(id);
