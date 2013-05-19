@@ -73,10 +73,22 @@ static void *watchdog(void *dummy)
 	return NULL;
 }
 
+void c_set_watchdog_tick(unsigned int tick)
+{
+	watchdog_tick = tick;
+}
+
 void c_init()
 {
+	char *disable_str;
+	int disable_val;
 	char *watchdog_tick_str;
 	unsigned int new_watchdog_tick;
+
+	disable_str = getenv("C_DISABLE");
+	if (disable_str && sscanf(disable_str, "%d", &disable_val) == 1)
+		if (disable_val)
+			return; // disabling requested, so quitting
 
 	// mark coconut running
 	running = true;
@@ -89,7 +101,7 @@ void c_init()
 	// read watchdog tick duration
 	watchdog_tick_str = getenv("C_WATCHDOG_TICK");
 	if (watchdog_tick_str && sscanf(watchdog_tick_str, "%u", &new_watchdog_tick) == 1)
-		watchdog_tick = new_watchdog_tick;
+		c_set_watchdog_tick(new_watchdog_tick);
 
 	// create watchdog
 	pthread_create(&watchdog_thread, NULL, watchdog, NULL);

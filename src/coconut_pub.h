@@ -24,6 +24,12 @@ void c_init();
 void c_free();
 
 /**
+ * Sets watchdog tick duration just as environmental variable C_WATCHDOG_TICK.
+ * Takes precedence over C_WATCHDOG_TICK variable.
+ */
+void c_set_watchdog_tick(unsigned int tick);
+
+/**
  * Blocks calling thread until event is published.
  */
 void c_wait_event(const char *event);
@@ -118,6 +124,8 @@ void c_output(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 
 #define c_init() do {} while(0)
 #define c_free() do {} while(0)
+
+#define c_set_watchdog_tick(x) do {} while (0)
 
 #define c_output(x, ...) do {} while(0)
 #define c_out(x, ...) do {} while (0)
