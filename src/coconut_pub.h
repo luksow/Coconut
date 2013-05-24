@@ -11,6 +11,11 @@
 
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /**
  * Initializing function.
  * Should be called before any other Coconut functions.
@@ -85,6 +90,10 @@ bool c_is_after_block(const char *block);
  * Function for safe outputting to stderr.
  */
 void c_output(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
+
+#ifdef __cplusplus
+}
+#endif
 
 /**
  * c_output wrapper with beautification
