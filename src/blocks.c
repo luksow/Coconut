@@ -42,7 +42,7 @@ static block_t *create_add_block(const char* id, char *preds[])
 	block = find_block(id);
 	if (block)
 	{
-		c_output("Duplicated blocks in interleaving definition, skipping...");
+		c_output("Duplicated blocks in interleaving definition, skipping...\n");
 		return NULL;
 	}
 
@@ -178,13 +178,13 @@ void c_begin_block(const char *id)
 	// basic error handling
 	if (!block)
 	{
-		c_output("Block %s to begin not found in interleaving list. Possible malfunctions.", id);
+		c_output("Block %s to begin not found in interleaving list. Possible malfunctions.\n", id);
 		pthread_mutex_unlock(&blocks_list_mutex);
 		return;
 	}
 	if (block->state != CREATED)
 	{
-		c_output("Block %s already owned by other thread. Possible malfunctions.", id);
+		c_output("Block %s already owned by other thread. Possible malfunctions.\n", id);
 		pthread_mutex_unlock(&blocks_list_mutex);
 		return;
 	}
@@ -205,9 +205,9 @@ void c_begin_block(const char *id)
 		pthread_mutex_lock(&tmp->block->cond_mutex);
 		while (tmp->block->state != FINISHED)
 			pthread_cond_wait(&tmp->block->cond, &tmp->block->cond_mutex);
-		block->state = STARTED;
 		pthread_mutex_unlock(&tmp->block->cond_mutex);
 	}
+	block->state = STARTED;
 
 	mark_self_unblocked();
 }
@@ -234,7 +234,7 @@ void c_end_block()
 
 	if (!block)
 	{
-		c_output("No begin block for end block. Skipping...");
+		c_output("No begin block for end block. Skipping...\n");
 		return;
 	}
 
