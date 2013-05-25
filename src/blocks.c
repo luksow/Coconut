@@ -144,7 +144,7 @@ void c_set_blocks_interleaving(const char *interleaving)
 
 	for (i = 0; groups[i]; ++i)
 	{
-		elems = get_tokenized(groups[i], " ");
+		elems = get_tokenized(groups[i], ",");
 		for (j = 0; elems[j]; ++j)
 		{
 			if (strlen(elems[j]) == 0)
