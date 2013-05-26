@@ -66,12 +66,6 @@ void c_begin_block(const char *block);
 void c_end_block();
 
 /**
- * Convenience function equivalent to c_begin_block(id); c_end_block(). That
- * allows for similar behaviour as event API.
- */
-void c_one_line_block(const char *block);
-
-/**
  * Checks if block has not been started yet.
  */
 bool c_is_before_block(const char *block);
@@ -87,13 +81,36 @@ bool c_is_during_block(const char *block);
 bool c_is_after_block(const char *block);
 
 /**
+ * Helper for c_cond_block macro. Do not use. See below.
+ */
+inline bool c_begin_block_bool(const char *block, bool cond)
+{
+	c_begin_block(block);
+	return cond;
+}
+
+/**
+ * Helper for c_cond_block macro. Do not use. See below.
+ */
+inline bool c_end_block_bool(bool cond)
+{
+	c_end_block();
+	return cond;
+}
+
+/**
+ * Allows for c_begin_block(BLOCK) to occur just before conditional check on
+ * COND (for ex. in if statement) and c_end_block() just after check. Returns
+ * evaluated COND.
+ * Guarantees proper order and evaluating COND just once due to sequence
+ * points.
+ */
+#define c_cond_block(COND, BLOCK) (c_begin_block_bool(BLOCK, false) || c_end_block_bool(COND))
+
+/**
  * Function for safe outputting to stderr.
  */
 void c_output(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
-
-#ifdef __cplusplus
-}
-#endif
 
 /**
  * c_output wrapper with beautification
@@ -146,7 +163,7 @@ void c_output(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 #define c_set_blocks_interleaving(x) do {} while(0)
 #define c_begin_block(x) do {} while(0)
 #define c_end_block() do {} while(0)
-#define c_one_line_block(x) do {} while(0)
+#define c_cond_block(COND, BLOCK) do {} while(0)
 
 #define c_assert_true(x, y, ...) do {} while(0)
 #define c_assert_false(x, y, ...) do {} while(0)
@@ -156,6 +173,10 @@ void c_output(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 #define c_assert_during_block(BLOCK, FMT, ...) do {} while (0)
 #define c_assert_after_block(BLOCK, FMT, ...) do {} while (0)
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif

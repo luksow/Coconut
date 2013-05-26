@@ -241,12 +241,6 @@ void c_end_block()
 	finish_block(block);
 }
 
-void c_one_line_block(const char *id)
-{
-	c_begin_block(id);
-	c_end_block();
-}
-
 bool c_is_before_block(const char *id)
 {
 	block_t *block = find_block(id);
