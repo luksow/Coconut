@@ -163,7 +163,7 @@ void c_output(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 #define c_set_blocks_interleaving(x) do {} while(0)
 #define c_begin_block(x) do {} while(0)
 #define c_end_block() do {} while(0)
-#define c_cond_block(COND, BLOCK) do {} while(0)
+#define c_cond_block(COND, BLOCK) COND
 
 #define c_assert_true(x, y, ...) do {} while(0)
 #define c_assert_false(x, y, ...) do {} while(0)
