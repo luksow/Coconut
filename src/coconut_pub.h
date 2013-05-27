@@ -83,20 +83,12 @@ bool c_is_after_block(const char *block);
 /**
  * Helper for c_cond_block macro. Do not use. See below.
  */
-inline bool c_begin_block_bool(const char *block, bool cond)
-{
-	c_begin_block(block);
-	return cond;
-}
+bool c_begin_block_bool(const char *block, bool cond);
 
 /**
  * Helper for c_cond_block macro. Do not use. See below.
  */
-inline bool c_end_block_bool(bool cond)
-{
-	c_end_block();
-	return cond;
-}
+bool c_end_block_bool(bool cond);
 
 /**
  * Allows for c_begin_block(BLOCK) to occur just before conditional check on

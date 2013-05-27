@@ -262,3 +262,15 @@ bool c_is_after_block(const char *id)
 	return block && block->state == FINISHED;
 }
 
+bool c_begin_block_bool(const char *block, bool cond)
+{
+	c_begin_block(block);
+	return cond;
+}
+
+bool c_end_block_bool(bool cond)
+{
+	c_end_block();
+	return cond;
+}
+
