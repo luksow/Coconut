@@ -51,7 +51,7 @@ bool c_is_event_published(const char *event);
 
 /**
  * Sets desired interleaving of blocks. Sequence that may run concurrently
- * should be delimited with ' ', sequences for sequential execution with ';'.
+ * should be delimited with ',', sequences for sequential execution with ';'.
  */
 void c_set_blocks_interleaving(const char *interleaving);
 
