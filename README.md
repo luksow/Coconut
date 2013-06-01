@@ -1,6 +1,6 @@
 # Coconut
 
-Coconut (COmpcat CONcurrent Unit Testing) is a library for testing and debugging concurrent applications in C/C++. It allows programmer to exercise selected interleavings and check some assertions. Execution with Coconut is deterministic and repeatable due to limited concurrency.
+Coconut (COmpcat CONcurrency Unit Testing) is a library for testing and debugging concurrent applications in C/C++. It allows programmer to exercise selected interleavings and check some assertions. Execution with Coconut is deterministic and repeatable due to limited concurrency.
 
 ## Interface
 
