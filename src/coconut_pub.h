@@ -1,4 +1,4 @@
-/*
+ /*
  * coconut.h - Coconut - library for unit testing concurrent C/C++ programs
  * For more info see README file distributed with source code
  * Copyright (C) 2013 Lukasz Sowa <contact@lukaszsowa.pl>
@@ -155,6 +155,9 @@ void c_output(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 #define c_set_blocks_interleaving(x) do {} while(0)
 #define c_begin_block(x) do {} while(0)
 #define c_end_block() do {} while(0)
+#define c_is_before_block(x) do {} while(0)
+#define c_is_during_block(x) do {} while(0)
+#define c_is_after_block(x) do {} while(0)
 #define c_cond_block(COND, BLOCK) COND
 
 #define c_assert_true(x, y, ...) do {} while(0)
